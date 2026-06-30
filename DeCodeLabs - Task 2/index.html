@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>CryptoVault — Encryption & Decryption Engine</title>
+  <meta name="description" content="Professional encryption & decryption tool with Caesar, Vigenère, Atbash, ROT13, XOR, and Reverse ciphers. DecodeLabs Internship Project 2."/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Orbitron:wght@400;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --bg:#06080f;--surface:rgba(8,14,28,0.92);--border:rgba(168,85,247,0.16);
+      --accent:#a855f7;--accent2:#06b6d4;--green:#10b981;--yellow:#f59e0b;
+      --red:#ef4444;--text:#e2e8f0;--muted:#64748b;--glow:rgba(168,85,247,0.12);
+    }
+    html{scroll-behavior:smooth}
+    body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+
+    /* Matrix */
+    #matrixCanvas{position:fixed;inset:0;z-index:0;opacity:.045;pointer-events:none}
+
+    /* Ambient */
+    body::before{content:'';position:fixed;top:-20%;left:40%;width:900px;height:600px;
+      background:radial-gradient(ellipse,rgba(168,85,247,.12)0%,transparent 68%);z-index:0;pointer-events:none}
+    body::after{content:'';position:fixed;bottom:-10%;right:-5%;width:500px;height:500px;
+      background:radial-gradient(ellipse,rgba(6,182,212,.06)0%,transparent 68%);z-index:0;pointer-events:none}
+
+    .page{position:relative;z-index:1}
+
+    /* Nav */
+    nav{display:flex;align-items:center;justify-content:space-between;padding:16px 42px;
+      border-bottom:1px solid var(--border);backdrop-filter:blur(20px);background:rgba(6,8,15,.75);
+      position:sticky;top:0;z-index:300}
+    .nav-logo{display:flex;align-items:center;gap:14px;text-decoration:none}
+    .shield-wrap{position:relative;width:42px;height:42px;display:flex;align-items:center;justify-content:center}
+    .shield-ring{position:absolute;inset:-6px;border-radius:50%;border:1.5px solid rgba(168,85,247,.45);animation:ringPulse 2.4s ease-out infinite}
+    .shield-ring:nth-child(2){animation-delay:1.2s}
+    @keyframes ringPulse{0%{transform:scale(.65);opacity:.9}100%{transform:scale(1.6);opacity:0}}
+    .shield-icon{font-size:24px;z-index:1;animation:glow 2.8s ease-in-out infinite}
+    @keyframes glow{0%,100%{filter:drop-shadow(0 0 5px rgba(168,85,247,.5))}50%{filter:drop-shadow(0 0 18px rgba(168,85,247,1))}}
+    .nav-text{font-family:'Orbitron',monospace;font-weight:700;font-size:15px;
+      background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;
+      -webkit-text-fill-color:transparent;background-clip:text;letter-spacing:1px}
+    .nav-badge{background:rgba(168,85,247,.1);border:1px solid rgba(168,85,247,.3);color:var(--accent);
+      font-size:10px;font-weight:600;padding:4px 12px;border-radius:20px;letter-spacing:1.5px;text-transform:uppercase}
+
+    /* Hero */
+    .hero{text-align:center;padding:56px 24px 36px}
+    .hero-tag{display:inline-flex;align-items:center;gap:8px;background:rgba(168,85,247,.07);
+      border:1px solid rgba(168,85,247,.22);color:var(--accent);font-size:11px;font-weight:600;
+      letter-spacing:2px;text-transform:uppercase;padding:6px 18px;border-radius:100px;margin-bottom:22px}
+    .hero-tag::before{content:'●';font-size:8px;animation:blink 1.4s infinite}
+    @keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+    h1{font-family:'Orbitron',monospace;font-size:clamp(26px,5vw,50px);font-weight:900;line-height:1.15;
+      margin-bottom:18px;background:linear-gradient(135deg,#fff 25%,var(--accent)60%,var(--accent2)100%);
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    .typewriter-wrap{font-size:13px;color:var(--muted);min-height:20px;margin-bottom:28px}
+    #typewriter::after{content:'|';color:var(--accent);animation:blink .75s infinite}
+    .hero-stats{display:flex;justify-content:center;gap:40px;flex-wrap:wrap}
+    .stat-value{font-family:'Orbitron',monospace;font-size:20px;font-weight:700;color:var(--accent)}
+    .stat-label{font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-top:3px}
+
+    /* Card */
+    .wrap{max-width:700px;margin:0 auto;padding:0 20px 70px}
+    .card{background:var(--surface);border:1px solid var(--border);border-radius:18px;
+      box-shadow:0 0 50px var(--glow),0 6px 70px rgba(0,0,0,.6);backdrop-filter:blur(24px);overflow:hidden}
+    .card-head{display:flex;align-items:center;justify-content:space-between;padding:14px 22px;
+      border-bottom:1px solid var(--border);background:rgba(168,85,247,.02)}
+    .card-title{font-size:11px;font-weight:600;color:var(--accent);letter-spacing:2px;text-transform:uppercase}
+    .dots{display:flex;gap:7px}
+    .dots span{width:12px;height:12px;border-radius:50%}
+    .dots span:nth-child(1){background:#ef4444}
+    .dots span:nth-child(2){background:#f59e0b}
+    .dots span:nth-child(3){background:#10b981}
+    .card-body{padding:24px 22px}
+
+    /* Form */
+    label.lbl{display:block;font-size:10px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;
+      color:var(--muted);margin-bottom:7px}
+    .select-wrap{position:relative;margin-bottom:16px}
+    select{width:100%;background:rgba(0,0,0,.5);border:1px solid var(--border);border-radius:12px;
+      color:var(--text);font-family:'Inter',sans-serif;font-size:14px;padding:12px 16px;outline:none;
+      appearance:none;cursor:pointer;transition:border-color .3s,box-shadow .3s}
+    select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(168,85,247,.1)}
+    .select-wrap::after{content:'▾';position:absolute;right:16px;top:50%;transform:translateY(-50%);
+      color:var(--muted);pointer-events:none;font-size:14px}
+
+    .action-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px}
+    @media(max-width:550px){.action-row{grid-template-columns:1fr;}}
+    .action-btn{padding:11px;border-radius:12px;font-size:13px;font-weight:600;cursor:pointer;
+      transition:all .25s;border:1px solid var(--border);background:rgba(0,0,0,.3);color:var(--muted);
+      display:flex;align-items:center;justify-content:center;gap:6px}
+    .action-btn.active{color:#fff}
+    .action-btn.enc.active{background:rgba(16,185,129,.15);border-color:rgba(16,185,129,.4);color:var(--green)}
+    .action-btn.dec.active{background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.35);color:var(--red)}
+    .action-btn.brute.active{background:rgba(245,158,11,.15);border-color:rgba(245,158,11,.4);color:var(--yellow)}
+    .action-btn:hover{transform:translateY(-1px)}
+
+    #keySection{margin-bottom:16px;display:none;animation:fadeUp .3s ease}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+    #keyInput{width:100%;background:rgba(0,0,0,.5);border:1px solid var(--border);border-radius:12px;
+      color:var(--text);font-family:'JetBrains Mono',monospace;font-size:14px;padding:12px 16px;outline:none;
+      transition:border-color .3s,box-shadow .3s}
+    #keyInput:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(168,85,247,.1)}
+    #keyHint{font-size:11px;color:var(--muted);margin-top:5px}
+
+    textarea{width:100%;background:rgba(0,0,0,.5);border:1px solid var(--border);border-radius:12px;
+      color:var(--text);font-family:'JetBrains Mono',monospace;font-size:14px;padding:14px 16px;
+      outline:none;resize:vertical;min-height:90px;transition:border-color .3s,box-shadow .3s;margin-bottom:8px}
+    textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(168,85,247,.1)}
+    textarea::placeholder{color:var(--muted);font-family:'Inter',sans-serif}
+
+    /* Drag & Drop Zone */
+    .file-drop{border:2px dashed var(--border);border-radius:12px;padding:20px;text-align:center;
+      background:rgba(0,0,0,.3);transition:all .3s;margin-bottom:16px;cursor:pointer}
+    .file-drop.dragover{border-color:var(--accent);background:rgba(168,85,247,.1)}
+    .file-drop .file-icon{font-size:24px;margin-bottom:8px;color:var(--muted)}
+    .file-drop .file-text{font-size:12px;color:var(--muted)}
+    .file-drop .file-name{display:none;font-size:13px;color:var(--accent);font-weight:600;margin-top:5px;word-break:break-all}
+    .file-drop .remove-file{display:none;color:var(--red);font-size:11px;cursor:pointer;text-decoration:underline;margin-top:4px}
+
+    #processBtn{width:100%;padding:14px;background:linear-gradient(135deg,var(--accent),var(--accent2));
+      border:none;border-radius:12px;color:#fff;font-family:'Orbitron',monospace;font-size:12px;
+      font-weight:700;letter-spacing:1.5px;cursor:pointer;transition:transform .2s,box-shadow .3s;
+      box-shadow:0 4px 22px rgba(168,85,247,.2);display:flex;align-items:center;justify-content:center;gap:8px}
+    #processBtn:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(168,85,247,.3)}
+    #processBtn:active{transform:translateY(0)}
+    #processBtn.loading{opacity:.6;pointer-events:none}
+    .spinner{width:15px;height:15px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;
+      border-radius:50%;animation:spin .7s linear infinite;display:none}
+    #processBtn.loading .spinner{display:block}
+    #processBtn.loading .btn-label{display:none}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    /* Result */
+    #resultSection{display:none;margin-top:22px;animation:fadeUp .4s ease}
+    #bruteSection{display:none;margin-top:22px;animation:fadeUp .4s ease}
+    
+    .result-card{background:rgba(0,0,0,.35);border:1px solid var(--border);border-radius:14px;
+      overflow:hidden;margin-bottom:14px}
+    .result-head{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;
+      border-bottom:1px solid var(--border);background:rgba(168,85,247,.03)}
+    .result-tag{font-size:10px;font-weight:600;color:var(--accent);letter-spacing:2px;text-transform:uppercase}
+    .copy-res{background:rgba(168,85,247,.15);border:1px solid rgba(168,85,247,.3);border-radius:8px;
+      color:var(--accent);font-size:11px;font-weight:600;padding:4px 12px;cursor:pointer;transition:all .2s}
+    .copy-res:hover{background:rgba(168,85,247,.28)}
+    .result-body{padding:16px 18px;max-height:400px;overflow-y:auto}
+    .result-text{font-family:'JetBrains Mono',monospace;font-size:14px;line-height:1.7;word-break:break-all;
+      color:var(--text);user-select:all}
+
+    /* Brute Force Rows */
+    .brute-row{padding:12px;border-bottom:1px solid rgba(255,255,255,0.05);display:flex;gap:16px;align-items:flex-start}
+    .brute-row:last-child{border-bottom:none}
+    .brute-row.likely{background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);border-radius:8px;margin-bottom:8px}
+    .brute-shift{min-width:70px;font-size:12px;color:var(--yellow);font-weight:600}
+    .brute-text{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--text);word-break:break-word}
+    .brute-badge{display:inline-block;background:rgba(16,185,129,.2);color:var(--green);font-size:9px;padding:2px 6px;border-radius:4px;margin-left:8px;vertical-align:middle}
+
+    /* Verification */
+    .verify-box{display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:12px;
+      margin-bottom:14px;font-size:13px;font-weight:600}
+    .verify-box.pass{background:rgba(16,185,129,.07);border:1px solid rgba(16,185,129,.25);color:var(--green)}
+    .verify-box.fail{background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.25);color:var(--red)}
+
+    /* Stats grid */
+    .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+    @media(max-width:550px){.stats-grid{grid-template-columns:1fr 1fr}}
+    .scard{background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center}
+    .scard-val{font-family:'Orbitron',monospace;font-size:18px;font-weight:700;color:var(--accent)}
+    .scard-lbl{font-size:9px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-top:3px}
+
+    /* How it works visual */
+    .how-row{display:flex;align-items:center;gap:8px;padding:14px 16px;background:rgba(168,85,247,.04);
+      border:1px solid var(--border);border-radius:12px;margin-bottom:14px;flex-wrap:wrap;justify-content:center}
+    .how-box{background:rgba(0,0,0,.4);border:1px solid var(--border);border-radius:8px;padding:8px 14px;
+      font-family:'JetBrains Mono',monospace;font-size:12px;max-width:180px;text-align:center;
+      word-break:break-all;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .how-box.input-box{border-color:rgba(16,185,129,.3);color:var(--green)}
+    .how-box.output-box{border-color:rgba(239,68,68,.3);color:var(--red)}
+    .how-arrow{font-size:18px;color:var(--accent);flex-shrink:0}
+    .how-label{font-size:10px;color:var(--muted);text-align:center;letter-spacing:1px;text-transform:uppercase}
+
+    /* Export & Download */
+    .export-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px}
+    @media(max-width:550px){.export-grid{grid-template-columns:1fr}}
+    
+    .btn-outline{padding:13px;background:linear-gradient(135deg,rgba(168,85,247,.08),rgba(6,182,212,.08));
+      border:1px solid rgba(168,85,247,.28);border-radius:12px;color:var(--accent);font-family:'Orbitron',monospace;
+      font-size:11px;font-weight:700;letter-spacing:1.5px;cursor:pointer;transition:all .25s;text-align:center;width:100%}
+    .btn-outline:hover{background:linear-gradient(135deg,rgba(168,85,247,.15),rgba(6,182,212,.15));
+      border-color:var(--accent);box-shadow:0 0 22px rgba(168,85,247,.14)}
+
+    /* Footer */
+    footer{text-align:center;padding:22px 24px;border-top:1px solid var(--border);color:var(--muted);
+      font-size:12px;position:relative;z-index:1}
+    footer span{color:var(--accent)}
+
+    ::-webkit-scrollbar{width:5px}
+    ::-webkit-scrollbar-track{background:var(--bg)}
+    ::-webkit-scrollbar-thumb{background:rgba(168,85,247,.18);border-radius:99px}
+  </style>
+</head>
+<body>
+<canvas id="matrixCanvas"></canvas>
+
+<div class="page">
+  <nav>
+    <div class="nav-logo">
+      <div class="shield-wrap">
+        <div class="shield-ring"></div>
+        <div class="shield-ring"></div>
+        <div class="shield-icon">🔐</div>
+      </div>
+      <span class="nav-text">CRYPTOVAULT</span>
+    </div>
+    <span class="nav-badge">v2.0 PRO</span>
+  </nav>
+
+  <section class="hero">
+    <div class="hero-tag">🛡️ Project 2 · DecodeLabs 2026</div>
+    <h1>Encryption &amp;<br/>Decryption Engine</h1>
+    <p class="typewriter-wrap"><span id="typewriter"></span></p>
+    <div class="hero-stats">
+      <div class="stat"><div class="stat-value">6</div><div class="stat-label">Cipher Algorithms</div></div>
+      <div class="stat"><div class="stat-value">Brute</div><div class="stat-label">Force Cracker</div></div>
+      <div class="stat"><div class="stat-value">File</div><div class="stat-label">Encryption</div></div>
+      <div class="stat"><div class="stat-value">PDF</div><div class="stat-label">Export Report</div></div>
+    </div>
+  </section>
+
+  <section class="wrap">
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title">⚡ Cipher Engine</span>
+        <div class="dots"><span></span><span></span><span></span></div>
+      </div>
+      <div class="card-body">
+
+        <!-- Step 1: Cipher -->
+        <label class="lbl" for="cipherSelect">Step 1 — Select Cipher</label>
+        <div class="select-wrap">
+          <select id="cipherSelect">
+            <option value="caesar">🔄 Caesar Cipher — Shift substitution</option>
+            <option value="vigenere">🔑 Vigenère Cipher — Keyword polyalphabetic</option>
+            <option value="atbash">🪞 Atbash Cipher — Mirror alphabet</option>
+            <option value="rot13">🔃 ROT13 — Fixed shift-13</option>
+            <option value="xor">⊕ XOR Cipher — Bitwise XOR</option>
+            <option value="reverse">↩️ Reverse Cipher — String reversal</option>
+          </select>
+        </div>
+
+        <!-- Step 2: Action -->
+        <label class="lbl">Step 2 — Choose Action</label>
+        <div class="action-row">
+          <button class="action-btn enc active" id="encBtn" onclick="setAction('encrypt')">🔒 Encrypt</button>
+          <button class="action-btn dec" id="decBtn" onclick="setAction('decrypt')">🔓 Decrypt</button>
+          <button class="action-btn brute" id="bruteBtn" onclick="setAction('brute')" title="Crack unknown Caesar ciphers">💥 Crack</button>
+        </div>
+
+        <!-- Step 3: Key -->
+        <div id="keySection">
+          <label class="lbl" for="keyInput" id="keyLabel">Step 3 — Enter Key</label>
+          <input type="text" id="keyInput" placeholder="Enter key..."/>
+          <div id="keyHint"></div>
+        </div>
+
+        <!-- Step 4: Message or File -->
+        <label class="lbl" for="messageInput" id="msgLabel">Step 3 — Enter Data (Text or File)</label>
+        <textarea id="messageInput" placeholder="Type your message here..." rows="4"></textarea>
+
+        <!-- Drag and drop -->
+        <div class="file-drop" id="fileDrop">
+          <div class="file-icon">📄</div>
+          <div class="file-text">Drag & drop a .txt file here or <span style="color:var(--accent);text-decoration:underline;cursor:pointer" onclick="document.getElementById('fileInput').click()">browse</span></div>
+          <div class="file-name" id="fileName"></div>
+          <div class="remove-file" id="removeFile">Remove File</div>
+          <input type="file" id="fileInput" accept=".txt,.csv,.md" style="display:none">
+        </div>
+
+        <!-- Process -->
+        <button id="processBtn">
+          <div class="spinner"></div>
+          <span class="btn-label" id="processBtnLabel">⚡ PROCESS</span>
+        </button>
+
+        <!-- Result (Encrypt/Decrypt) -->
+        <div id="resultSection">
+          <!-- Visual Flow -->
+          <div class="how-row" id="howRow">
+            <div>
+              <div class="how-box input-box" id="howInput">—</div>
+              <div class="how-label">Input</div>
+            </div>
+            <div class="how-arrow">➜</div>
+            <div>
+              <div class="how-box" id="howCipher" style="color:var(--accent);border-color:rgba(168,85,247,.3)">—</div>
+              <div class="how-label">Cipher</div>
+            </div>
+            <div class="how-arrow">➜</div>
+            <div>
+              <div class="how-box output-box" id="howOutput">—</div>
+              <div class="how-label">Output</div>
+            </div>
+          </div>
+
+          <!-- Output Card -->
+          <div class="result-card">
+            <div class="result-head">
+              <span class="result-tag" id="outputLabel">🔒 ENCRYPTED OUTPUT</span>
+              <button class="copy-res" id="copyResult">📋 Copy</button>
+            </div>
+            <div class="result-body">
+              <div class="result-text" id="outputText"></div>
+            </div>
+          </div>
+
+          <!-- Verification -->
+          <div class="verify-box pass" id="verifyBox">
+            <span>🔄</span>
+            <span id="verifyText">Round-trip verification: PASSED ✅</span>
+          </div>
+
+          <!-- Stats -->
+          <div class="stats-grid">
+            <div class="scard"><div class="scard-val" id="statInLen">0</div><div class="scard-lbl">Input Length</div></div>
+            <div class="scard"><div class="scard-val" id="statOutLen">0</div><div class="scard-lbl">Output Length</div></div>
+            <div class="scard"><div class="scard-val" id="statUniqIn">0</div><div class="scard-lbl">Unique Input</div></div>
+            <div class="scard"><div class="scard-val" id="statUniqOut">0</div><div class="scard-lbl">Unique Output</div></div>
+          </div>
+
+          <!-- Export Grid -->
+          <div class="export-grid">
+            <button class="btn-outline" id="exportBtn">📄 EXPORT PDF</button>
+            <button class="btn-outline" id="downloadBtn" style="display:none">💾 DOWNLOAD FILE</button>
+          </div>
+        </div>
+
+        <!-- Brute Force Results -->
+        <div id="bruteSection">
+          <div class="result-card">
+            <div class="result-head">
+              <span class="result-tag">💥 BRUTE-FORCE CRACKER RESULTS</span>
+            </div>
+            <div class="result-body" id="bruteResults">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <footer>Built with ❤️ by <span>CryptoVault Team</span> · DecodeLabs Internship Project 2 · 2026</footer>
+</div>
+
+<script>
+/* ── Matrix Rain ─────────────────────────────────── */
+(function(){
+  const cv=document.getElementById('matrixCanvas'),cx=cv.getContext('2d');
+  const CH='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789⊕∧∨¬⊗';
+  let cols,drops;
+  function rsz(){cv.width=innerWidth;cv.height=innerHeight;cols=Math.floor(innerWidth/18);
+    drops=Array.from({length:cols},()=>Math.random()*-60)}
+  function draw(){cx.fillStyle='rgba(6,8,15,.07)';cx.fillRect(0,0,cv.width,cv.height);
+    cx.fillStyle='#a855f7';cx.font='13px monospace';
+    for(let i=0;i<cols;i++){const c=CH[~~(Math.random()*CH.length)];
+      cx.fillText(c,i*18,drops[i]*18);if(drops[i]*18>cv.height&&Math.random()>.97)drops[i]=0;drops[i]++}}
+  rsz();addEventListener('resize',rsz);setInterval(draw,55)
+})();
+
+/* ── Typewriter ──────────────────────────────────── */
+(function(){
+  const el=document.getElementById('typewriter');
+  const lines=['Data confidentiality through mathematical precision.','6 cipher algorithms + Brute Force Cracker.','Encrypt files seamlessly with Drag & Drop.','Proving you can protect information in transit.'];
+  let li=0,ci=0,del=false;
+  function tick(){const line=lines[li];
+    if(!del){el.textContent=line.slice(0,++ci);if(ci===line.length){del=true;setTimeout(tick,2200);return}}
+    else{el.textContent=line.slice(0,--ci);if(ci===0){del=false;li=(li+1)%lines.length;setTimeout(tick,400);return}}
+    setTimeout(tick,del?28:50)}
+  setTimeout(tick,1000)
+})();
+
+/* ── Cipher Engines ──────────────────────────────── */
+const Ciphers={
+  caesar:{
+    name:'Caesar Cipher',
+    needsKey:true,keyLabel:'Shift Value',keyPlaceholder:'Enter shift (1-25, default 3)',keyHint:'A number from 1 to 25. Each letter shifts by this amount.',
+    parseKey:v=>{const n=parseInt(v)||3;return Math.max(1,Math.min(25,n))},
+    encrypt:(t,k)=>[...t].map(c=>{if(!c.match(/[a-zA-Z]/))return c;const b=c<='Z'&&c>='A'?65:97;return String.fromCharCode((c.charCodeAt(0)-b+k)%26+b)}).join(''),
+    decrypt:(t,k)=>[...t].map(c=>{if(!c.match(/[a-zA-Z]/))return c;const b=c<='Z'&&c>='A'?65:97;return String.fromCharCode((c.charCodeAt(0)-b-k+26)%26+b)}).join('')
+  },
+  vigenere:{
+    name:'Vigenère Cipher',
+    needsKey:true,keyLabel:'Keyword',keyPlaceholder:'Enter keyword (letters only, default SECURITY)',keyHint:'A word using only letters. Each letter determines a different shift.',
+    parseKey:v=>{const s=(v||'SECURITY').replace(/[^a-zA-Z]/g,'').toUpperCase();return s||'SECURITY'},
+    encrypt:(t,k)=>{let ki=0;return[...t].map(c=>{if(!c.match(/[a-zA-Z]/))return c;const b=c<='Z'&&c>='A'?65:97;const s=k.charCodeAt(ki%k.length)-65;ki++;return String.fromCharCode((c.charCodeAt(0)-b+s)%26+b)}).join('')},
+    decrypt:(t,k)=>{let ki=0;return[...t].map(c=>{if(!c.match(/[a-zA-Z]/))return c;const b=c<='Z'&&c>='A'?65:97;const s=k.charCodeAt(ki%k.length)-65;ki++;return String.fromCharCode((c.charCodeAt(0)-b-s+26)%26+b)}).join('')}
+  },
+  atbash:{
+    name:'Atbash Cipher',needsKey:false,
+    encrypt:t=>[...t].map(c=>{if(!c.match(/[a-zA-Z]/))return c;const b=c<='Z'&&c>='A'?65:97;return String.fromCharCode(b+25-(c.charCodeAt(0)-b))}).join(''),
+    decrypt:t=>Ciphers.atbash.encrypt(t)
+  },
+  rot13:{
+    name:'ROT13',needsKey:false,
+    encrypt:t=>Ciphers.caesar.encrypt(t,13),
+    decrypt:t=>Ciphers.caesar.encrypt(t,13)
+  },
+  xor:{
+    name:'XOR Cipher',
+    needsKey:true,keyLabel:'XOR Key Byte',keyPlaceholder:'Enter key (1-255, default 42)',keyHint:'A number from 1 to 255. Each character is XORed with this value.',
+    parseKey:v=>{const n=parseInt(v)||42;return Math.max(1,Math.min(255,n))},
+    encrypt:(t,k)=>[...t].map(c=>String.fromCharCode(c.charCodeAt(0)^k)).join(''),
+    decrypt:(t,k)=>Ciphers.xor.encrypt(t,k)
+  },
+  reverse:{
+    name:'Reverse Cipher',needsKey:false,
+    encrypt:t=>[...t].reverse().join(''),
+    decrypt:t=>[...t].reverse().join('')
+  }
+};
+
+/* Dictionary for Brute Force (Common English words) */
+const dict = new Set(["the","be","to","of","and","a","in","that","have","I","it","for","not","on","with","he","as","you","do","at","this","but","his","by","from","they","we","say","her","she","or","an","will","my","one","all","would","there","their","what","so","up","out","if","about","who","get","which","go","me","when","make","can","like","time","no","just","him","know","take","people","into","year","your","good","some","could","them","see","other","than","then","now","look","only","come","its","over","think","also","back","after","use","two","how","our","work","first","well","way","even","new","want","because","any","these","give","day","most","us","hello","security","password","encryption","decryption","hacker","cyber"]);
+
+function scoreEnglish(text) {
+  const words = text.toLowerCase().replace(/[^a-z\s]/g, '').split(/\s+/);
+  let score = 0;
+  for(let w of words){
+    if(dict.has(w)) score++;
+  }
+  return score;
+}
+
+
+/* ── DOM & State ─────────────────────────────────── */
+const $=id=>document.getElementById(id);
+let currentAction='encrypt';
+let lastResult=null;
+let fileContent=null;
+let fileNameStr='';
+
+function setAction(a){
+  currentAction=a;
+  $('encBtn').classList.toggle('active',a==='encrypt');
+  $('decBtn').classList.toggle('active',a==='decrypt');
+  $('bruteBtn').classList.toggle('active',a==='brute');
+  
+  if(a === 'brute') {
+    $('processBtnLabel').textContent = '💥 CRACK CIPHER';
+    // Force Caesar if brute force is selected
+    if($('cipherSelect').value !== 'caesar') {
+      $('cipherSelect').value = 'caesar';
+      updateKeySection();
+    }
+  } else {
+    $('processBtnLabel').textContent = '⚡ PROCESS';
+  }
+
+  let stepLabel = ($('keySection').style.display!=='none'?'Step 4':'Step 3') + ' — Enter Data (Text or File)';
+  $('msgLabel').textContent = stepLabel;
+  
+  if(a==='encrypt') $('messageInput').placeholder='Type your plaintext here...';
+  else if(a==='decrypt') $('messageInput').placeholder='Paste the ciphertext here...';
+  else $('messageInput').placeholder='Paste the unknown Caesar ciphertext here...';
+}
+
+$('cipherSelect').addEventListener('change', (e) => {
+  if(currentAction === 'brute' && e.target.value !== 'caesar') {
+    alert("Brute Force Cracker only supports the Caesar Cipher in this version.");
+    e.target.value = 'caesar';
+  }
+  updateKeySection();
+});
+
+function updateKeySection(){
+  const cipher=Ciphers[$('cipherSelect').value];
+  // Hide key section if brute forcing
+  if(cipher.needsKey && currentAction !== 'brute'){
+    $('keySection').style.display='block';
+    $('keyLabel').textContent='Step 3 — '+cipher.keyLabel;
+    $('keyInput').placeholder=cipher.keyPlaceholder;
+    $('keyHint').textContent=cipher.keyHint;
+    $('msgLabel').textContent='Step 4 — Enter Data (Text or File)';
+  }else{
+    $('keySection').style.display='none';
+    $('msgLabel').textContent='Step 3 — Enter Data (Text or File)';
+  }
+}
+updateKeySection();
+
+/* ── File Drag & Drop ────────────────────────────── */
+const dropZone = $('fileDrop');
+const fileInput = $('fileInput');
+
+dropZone.addEventListener('dragover', (e) => {
+  e.preventDefault();
+  dropZone.classList.add('dragover');
+});
+dropZone.addEventListener('dragleave', (e) => {
+  e.preventDefault();
+  dropZone.classList.remove('dragover');
+});
+dropZone.addEventListener('drop', (e) => {
+  e.preventDefault();
+  dropZone.classList.remove('dragover');
+  if(e.dataTransfer.files.length) {
+    handleFile(e.dataTransfer.files[0]);
+  }
+});
+fileInput.addEventListener('change', (e) => {
+  if(e.target.files.length) handleFile(e.target.files[0]);
+});
+
+function handleFile(file) {
+  fileNameStr = file.name;
+  $('fileName').textContent = fileNameStr;
+  $('fileName').style.display = 'block';
+  $('removeFile').style.display = 'inline-block';
+  document.querySelector('.file-text').style.display = 'none';
+  
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    fileContent = e.target.result;
+    $('messageInput').value = "📄 [File loaded: " + fileNameStr + "]\nWill process file instead of text box.";
+    $('messageInput').disabled = true;
+  };
+  reader.readAsText(file);
+}
+
+$('removeFile').addEventListener('click', (e) => {
+  e.stopPropagation();
+  fileContent = null;
+  fileNameStr = '';
+  $('fileName').style.display = 'none';
+  $('removeFile').style.display = 'none';
+  document.querySelector('.file-text').style.display = 'block';
+  $('messageInput').value = '';
+  $('messageInput').disabled = false;
+  fileInput.value = '';
+});
+
+
+/* ── Process ─────────────────────────────────────── */
+$('processBtn').addEventListener('click',async()=>{
+  const msg = fileContent !== null ? fileContent : $('messageInput').value;
+  if(!msg.trim()){$('messageInput').focus();return}
+  
+  $('processBtn').classList.add('loading');
+  await new Promise(r=>setTimeout(r,800));
+  $('processBtn').classList.remove('loading');
+
+  const cipherKey=$('cipherSelect').value;
+  const cipher=Ciphers[cipherKey];
+
+  if(currentAction === 'brute') {
+    // Run Brute Force
+    $('resultSection').style.display='none';
+    const bRes = $('bruteResults');
+    bRes.innerHTML = '';
+    
+    let bestScore = -1;
+    let bestShift = 1;
+    let results = [];
+
+    for(let shift=1; shift<=25; shift++) {
+      const dec = cipher.decrypt(msg, shift);
+      const score = scoreEnglish(dec);
+      results.push({shift, text: dec, score});
+      if(score > bestScore) {
+        bestScore = score;
+        bestShift = shift;
+      }
+    }
+
+    results.forEach(r => {
+      const isLikely = r.shift === bestShift && bestScore > 0;
+      const row = document.createElement('div');
+      row.className = 'brute-row' + (isLikely ? ' likely' : '');
+      
+      const snippet = r.text.length > 80 ? r.text.substring(0,80) + '...' : r.text;
+      
+      row.innerHTML = `
+        <div class="brute-shift">Shift ${r.shift}</div>
+        <div class="brute-text">${snippet.replace(/</g,'&lt;')} ${isLikely ? '<span class="brute-badge">Most Likely Match ⭐</span>' : ''}</div>
+      `;
+      bRes.appendChild(row);
+    });
+
+    $('bruteSection').style.display='block';
+    $('bruteSection').scrollIntoView({behavior:'smooth',block:'start'});
+    return;
+  }
+
+  // Normal Encrypt/Decrypt
+  $('bruteSection').style.display='none';
+  
+  let key=undefined;
+  if(cipher.needsKey) key=cipher.parseKey($('keyInput').value);
+
+  const output=currentAction==='encrypt'?cipher.encrypt(msg,key):cipher.decrypt(msg,key);
+
+  // Verify round-trip
+  const roundTrip=currentAction==='encrypt'?cipher.decrypt(output,key):cipher.encrypt(output,key);
+  const verified=roundTrip===msg;
+
+  lastResult={cipherName:cipher.name,cipherKey:cipherKey,action:currentAction,input:msg,output,key,verified,
+    inLen:msg.length,outLen:output.length,uniqIn:new Set(msg).size,uniqOut:new Set(output).size, isFile: fileContent !== null};
+
+  // Visual flow
+  const dispMsg = msg.length>18?msg.slice(0,18)+'…':msg;
+  const dispOut = output.length>18?output.slice(0,18)+'…':output;
+  $('howInput').textContent = fileContent ? '[File Content]' : dispMsg;
+  $('howCipher').textContent=cipher.name;
+  $('howOutput').textContent= fileContent ? '[Encrypted File]' : dispOut;
+
+  // Output
+  $('outputLabel').textContent=currentAction==='encrypt'?'🔒 ENCRYPTED OUTPUT':'🔓 DECRYPTED OUTPUT';
+  $('outputText').textContent=output;
+
+  // Verify
+  $('verifyBox').className='verify-box '+(verified?'pass':'fail');
+  $('verifyText').textContent='Round-trip verification: '+(verified?'PASSED ✅':'FAILED ❌');
+
+  // Stats
+  $('statInLen').textContent=msg.length;
+  $('statOutLen').textContent=output.length;
+  $('statUniqIn').textContent=new Set(msg).size;
+  $('statUniqOut').textContent=new Set(output).size;
+
+  if(fileContent !== null) {
+    $('downloadBtn').style.display = 'block';
+  } else {
+    $('downloadBtn').style.display = 'none';
+  }
+
+  $('resultSection').style.display='block';
+  $('resultSection').scrollIntoView({behavior:'smooth',block:'start'});
+});
+
+/* Copy */
+$('copyResult').addEventListener('click',async()=>{
+  try{await navigator.clipboard.writeText($('outputText').textContent);$('copyResult').textContent='✅ Copied!';
+    setTimeout(()=>$('copyResult').textContent='📋 Copy',2000)}catch(e){}
+});
+
+/* Download File */
+$('downloadBtn').addEventListener('click', () => {
+  if(!lastResult || !lastResult.isFile) return;
+  const blob = new Blob([lastResult.output], {type: "text/plain"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  
+  let newName = fileNameStr;
+  if(lastResult.action === 'encrypt') {
+    newName = newName.replace('.txt', '') + '_encrypted.txt';
+  } else {
+    newName = newName.replace('_encrypted', '') + '_decrypted.txt';
+  }
+  
+  a.download = newName;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+});
+
+/* Export PDF */
+$('exportBtn').addEventListener('click',()=>{
+  if(!lastResult)return;
+  const r=lastResult;
+  const now=new Date().toLocaleString('en-IN',{timeZone:'Asia/Kolkata'});
+  const scColor=r.verified?'#166534':'#dc2626';
+  const scBg=r.verified?'#dcfce7':'#fee2e2';
+  const keyStr=r.key!==undefined?String(r.key):'N/A (self-inverse)';
+
+  let printInput = r.input.length > 500 ? r.input.substring(0,500) + '... [TRUNCATED FOR PDF]' : r.input;
+  let printOutput = r.output.length > 500 ? r.output.substring(0,500) + '... [TRUNCATED FOR PDF]' : r.output;
+
+  const win=window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html><head>
+<title>CryptoVault – Encryption Report</title>
+<style>
+  body{font-family:Arial,sans-serif;padding:48px;max-width:700px;margin:0 auto;color:#1e293b;font-size:14px}
+  .logo{display:flex;align-items:center;gap:12px;margin-bottom:6px}
+  .logo h1{font-size:22px;color:#7c3aed;margin:0}
+  .sub{color:#64748b;font-size:12px;margin-bottom:20px}
+  .badge{display:inline-block;padding:5px 16px;border-radius:99px;font-weight:700;font-size:12px;margin-bottom:20px;
+    background:${scBg};color:${scColor}}
+  hr{border:none;border-top:1px solid #e2e8f0;margin:20px 0}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+  .metric{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:13px}
+  .ml{font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px}
+  .mv{font-size:15px;font-weight:700;color:#1e293b}
+  h3{font-size:14px;color:#334155;margin:18px 0 10px;text-transform:uppercase;letter-spacing:1px}
+  .box{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:16px;margin-bottom:16px;
+    font-family:'Courier New',monospace;font-size:13px;word-break:break-all;line-height:1.6}
+  .lbl{font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+  .verify{padding:12px 16px;border-radius:10px;font-weight:700;font-size:13px;margin-bottom:16px;
+    background:${scBg};color:${scColor}}
+  .footer{font-size:11px;color:#94a3b8;text-align:center;margin-top:36px;padding-top:16px;border-top:1px solid #e2e8f0}
+</style></head><body>
+<div class="logo"><span style="font-size:28px">🔐</span><h1>CRYPTOVAULT</h1></div>
+<div class="sub">Encryption & Decryption Report · ${now}</div>
+<div class="badge">${r.action==='encrypt'?'🔒 ENCRYPTION':'🔓 DECRYPTION'} · ${r.verified?'VERIFIED ✅':'UNVERIFIED ❌'}</div>
+<hr/>
+<div class="grid">
+  <div class="metric"><div class="ml">Cipher Used</div><div class="mv">${r.cipherName}</div></div>
+  <div class="metric"><div class="ml">Key / Shift</div><div class="mv">${keyStr}</div></div>
+  <div class="metric"><div class="ml">Input Length</div><div class="mv">${r.inLen} chars</div></div>
+  <div class="metric"><div class="ml">Output Source</div><div class="mv">${r.isFile ? 'Text File (.txt)' : 'Manual Text Input'}</div></div>
+</div>
+<hr/>
+<h3>${r.action==='encrypt'?'📝 Original Plaintext':'🔒 Encrypted Input'}</h3>
+<div class="box">${printInput.replace(/</g,'&lt;')}</div>
+<h3>${r.action==='encrypt'?'🔒 Encrypted Output':'🔓 Decrypted Output'}</h3>
+<div class="box">${printOutput.replace(/</g,'&lt;')}</div>
+<div class="verify">🔄 Round-trip Verification: ${r.verified?'PASSED ✅':'FAILED ❌'}</div>
+<div class="grid">
+  <div class="metric"><div class="ml">Unique Input Chars</div><div class="mv">${r.uniqIn}</div></div>
+  <div class="metric"><div class="ml">Unique Output Chars</div><div class="mv">${r.uniqOut}</div></div>
+</div>
+<div class="footer">CryptoVault v2.0 PRO · DecodeLabs Internship Project 2 · 2026<br/>This report was auto-generated for educational purposes.</div>
+</body></html>`);
+  win.document.close();
+  setTimeout(()=>win.print(),700);
+});
+</script>
+</body>
+</html>

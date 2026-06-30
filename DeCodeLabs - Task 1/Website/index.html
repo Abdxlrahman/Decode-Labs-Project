@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cyber Gatekeeper — Advanced Password Strength Analyzer</title>
+  <meta name="description" content="Professional cybersecurity password analyzer with real-time entropy, crack time estimation, HaveIBeenPwned breach check, and PDF export." />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;600;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<canvas id="cyber-canvas"></canvas>
+
+<div class="page">
+
+  <!-- ─── NAV ─────────────────────────────────────────── -->
+  <nav>
+    <div class="nav-logo">
+      <div class="shield-wrap">
+        <div class="shield-ring"></div>
+        <div class="shield-ring"></div>
+        <div class="shield-icon">🛡️</div>
+      </div>
+      <span class="nav-logo-text">CYBER GATEKEEPER</span>
+    </div>
+    <span class="nav-badge">v3.0 PRO</span>
+  </nav>
+
+  <!-- ─── HERO ─────────────────────────────────────────── -->
+  <section class="hero">
+    <div class="hero-tag">🔐 Internship Project · DecodeLabs 2026</div>
+    <h1>Advanced Password<br/>Strength Analyzer</h1>
+    <p class="typewriter-wrap"><span id="typewriter"></span></p>
+    <div class="hero-stats">
+      <div class="stat"><div class="stat-value">8+</div><div class="stat-label">Security Checks</div></div>
+      <div class="stat"><div class="stat-value">HIBP</div><div class="stat-label">Breach Database</div></div>
+      <div class="stat"><div class="stat-value">GPU</div><div class="stat-label">Crack Simulation</div></div>
+      <div class="stat"><div class="stat-value">PDF</div><div class="stat-label">Export Report</div></div>
+    </div>
+  </section>
+
+  <!-- ─── CARD ─────────────────────────────────────────── -->
+  <section class="analyzer-wrapper">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">⌨️ Security Terminal</span>
+        <div class="card-dots"><span></span><span></span><span></span></div>
+      </div>
+      <div class="card-body">
+        <label class="input-label" for="pwdInput">Enter Password to Analyze</label>
+        <div class="input-wrap">
+          <input type="password" id="pwdInput" placeholder="Type or generate a password…" autocomplete="off" />
+          <div class="input-actions">
+            <span id="charCount">0</span>
+            <button id="togglePwd" title="Toggle visibility">👁️</button>
+          </div>
+        </div>
+
+        <div class="strength-header">
+          <span class="strength-label">Live Strength</span>
+          <span id="strengthText">—</span>
+        </div>
+        <div class="strength-bar-bg"><div id="strengthBar"></div></div>
+
+        <div class="btn-row">
+          <button class="btn-gen" id="generateBtn">🔑 Generate Password</button>
+          <button id="analyzeBtn">
+            <div class="spinner"></div>
+            <span class="btn-text">🔍 ANALYZE</span>
+          </button>
+        </div>
+
+        <div id="genBar">
+          <span id="genPwdText"></span>
+          <button id="copyBtn">📋 Copy</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>Built with ❤️ by <span>Cyber Gatekeeper Team</span> · DecodeLabs Internship Project 2026</footer>
+</div>
+
+<!-- ─── MODAL ────────────────────────────────────────────── -->
+<div id="modalOverlay">
+  <div id="modal">
+    <div class="modal-head">
+      <span class="modal-title">🔐 SECURITY REPORT</span>
+      <button id="closeModal">✕ Close</button>
+    </div>
+    <div class="modal-body">
+
+      <!-- Donut + Side Cards -->
+      <div class="top-row">
+        <div class="donut-wrap">
+          <svg viewBox="0 0 120 120">
+            <circle class="donut-track" cx="60" cy="60" r="52"/>
+            <circle id="scoreRing"      cx="60" cy="60" r="52"/>
+          </svg>
+          <div class="donut-center">
+            <span id="scoreCounter">0</span>
+            <small>/100</small>
+          </div>
+        </div>
+        <div class="side-cards">
+          <div class="mcard">
+            <div class="mcard-lbl">💪 Strength Level</div>
+            <div class="mcard-val" id="strengthLbl">—</div>
+          </div>
+          <div class="mcard">
+            <div class="mcard-lbl">⏱️ Crack Time (GPU)</div>
+            <div class="mcard-val cv-cyan" id="crackVal">—</div>
+          </div>
+          <div class="mcard">
+            <div class="mcard-lbl">🌐 HaveIBeenPwned</div>
+            <div id="hibpVal">
+              <div class="hibp-loading"><div class="hibp-spin"></div>Checking breach database…</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Entropy + Diversity -->
+      <div class="sec-title">Entropy &amp; Diversity</div>
+      <div class="bar-block">
+        <div class="bar-row"><span>Shannon Entropy</span><span id="entropyTxt">— bits</span></div>
+        <div class="bar-bg"><div class="bar-fill" id="entropyFill" style="width:0%"></div></div>
+        <div class="bar-row"><span>Character Diversity</span><span id="diversityTxt">—%</span></div>
+        <div class="bar-bg"><div class="bar-fill" id="diversityFill" style="width:0%"></div></div>
+      </div>
+
+      <!-- Checks -->
+      <div class="sec-title">Security Checks</div>
+      <div class="checks-grid" id="checksGrid"></div>
+
+      <!-- Recommendations -->
+      <div class="sec-title">Recommendations</div>
+      <div class="recs" id="recsDiv"></div>
+
+      <!-- Export -->
+      <button id="exportBtn">📄 EXPORT PDF REPORT</button>
+    </div>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
